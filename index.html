@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spotify History — Timeline | Visualize seu histórico de reprodução</title>
+<meta name="description" content="Carregue os arquivos JSON exportados do Spotify e explore seu histórico de reprodução em uma timeline: top artistas, top músicas, horas ouvidas e filtros por ano. 100% no navegador, seus dados não são enviados a nenhum servidor.">
+<meta name="keywords" content="spotify, histórico spotify, timeline spotify, streaming history, spotify wrapped, estatísticas spotify, top artistas, top músicas, visualizador json spotify">
+<meta name="author" content="Computeiros">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<link rel="canonical" href="https://timeline.computeiros.com/">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="application-name" content="Spotify History Timeline">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Computeiros">
+<meta property="og:title" content="Spotify History — Timeline">
+<meta property="og:description" content="Explore seu histórico do Spotify em uma timeline: top artistas, top músicas e horas ouvidas. Tudo processado localmente no seu navegador.">
+<meta property="og:url" content="https://timeline.computeiros.com/">
+<meta property="og:locale" content="pt_BR">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spotify History — Timeline">
+<meta name="twitter:description" content="Explore seu histórico do Spotify em uma timeline. Tudo processado localmente no seu navegador.">
+
+<!-- Dados estruturados -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Spotify History — Timeline",
+  "url": "https://timeline.computeiros.com/",
+  "description": "Visualize o histórico de reprodução do Spotify em uma timeline interativa a partir dos arquivos JSON exportados.",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Any",
+  "inLanguage": "pt-BR",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" },
+  "publisher": { "@type": "Organization", "name": "Computeiros", "url": "https://computeiros.com/" }
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1DB954;
+    --green-dim: #1aa34a;
+    --green-glow: rgba(29,185,84,0.18);
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #181818;
+    --surface3: #222222;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e8e8;
+    --text-dim: #888;
+    --text-muted: #444;
+    --accent: #f4a523;
+    --accent2: #7c5cbf;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── NOISE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    background-size: 180px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 48px 48px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .logo-area { display: flex; align-items: center; gap: 16px; }
+
+  .logo-mark {
+    width: 48px; height: 48px;
+    background: var(--green);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 32px var(--green-glow);
+    flex-shrink: 0;
+  }
+
+  .logo-mark svg { width: 26px; }
+
+  .logo-text h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .logo-text p {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .stat-pill .val {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1;
+  }
+
+  .stat-pill .lbl {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* ─── UPLOAD ZONE ─── */
+  #upload-screen {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 140px);
+    padding: 48px;
+    text-align: center;
+  }
+
+  .upload-box {
+    border: 1.5px dashed rgba(29,185,84,0.35);
+    border-radius: 20px;
+    padding: 64px 80px;
+    max-width: 560px;
+    width: 100%;
+    background: rgba(29,185,84,0.03);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(29,185,84,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .upload-box:hover, .upload-box.drag-over {
+    border-color: var(--green);
+    background: rgba(29,185,84,0.06);
+    transform: translateY(-2px);
+    box-shadow: 0 20px 60px rgba(29,185,84,0.12);
+  }
+
+  .upload-icon {
+    width: 64px; height: 64px;
+    background: var(--surface2);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+    border: 1px solid var(--border);
+  }
+
+  .upload-icon svg { width: 28px; color: var(--green); }
+
+  .upload-box h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .upload-box p {
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .upload-box p span { color: var(--green); }
+
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 28px;
+    padding: 12px 28px;
+    background: var(--green);
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+
+  .upload-btn:hover { background: #23d45e; transform: scale(1.03); }
+
+  #file-input { display: none; }
+
+  .format-hint {
+    margin-top: 40px;
+    padding: 16px 24px;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    max-width: 560px;
+    text-align: left;
+  }
+
+  .format-hint strong { color: var(--text-dim); }
+
+  /* ─── MAIN LAYOUT ─── */
+  #app-screen { display: none; position: relative; z-index: 5; }
+
+  .app-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: calc(100vh - 140px);
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 28px 20px;
+    position: sticky;
+    top: 0;
+    height: calc(100vh - 140px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface3) transparent;
+  }
+
+  .sidebar-section { margin-bottom: 28px; }
+
+  .sidebar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+
+  .year-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    text-align: left;
+  }
+
+  .year-btn:hover { background: var(--surface2); color: var(--text); }
+  .year-btn.active { background: var(--green-glow); color: var(--green); font-weight: 600; }
+
+  .year-btn .count {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  .filter-input {
+    width: 100%;
+    padding: 9px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .filter-input:focus { border-color: var(--green); }
+  .filter-input::placeholder { color: var(--text-muted); }
+
+  .sort-select {
+    width: 100%;
+    padding: 9px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  /* ─── MAIN CONTENT ─── */
+  .main-content { padding: 32px 36px; overflow-y: auto; }
+
+  /* ─── YEAR BAR CHART ─── */
+  .year-overview {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 80px;
+    margin-bottom: 36px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .year-overview-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    position: absolute;
+    top: 12px;
+    left: 20px;
+  }
+
+  .mini-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .mini-bar {
+    width: 100%;
+    background: var(--surface3);
+    border-radius: 3px;
+    transition: background 0.2s;
+    min-height: 2px;
+  }
+
+  .mini-bar-wrap:hover .mini-bar,
+  .mini-bar-wrap.active .mini-bar { background: var(--green); }
+
+  .mini-bar-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .mini-bar-wrap.active .mini-bar-lbl { color: var(--green); }
+
+  /* ─── TIMELINE ─── */
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .timeline-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .timeline-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Month group */
+  .month-group { margin-bottom: 36px; }
+
+  .month-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .month-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .month-tag {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .month-plays {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* Track card */
+  .track-list { display: flex; flex-direction: column; gap: 3px; }
+
+  .track-card {
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+
+  .track-card:hover {
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+
+  .track-card.expanded {
+    background: var(--surface2);
+    border-color: rgba(29,185,84,0.2);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .track-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    line-height: 1;
+  }
+
+  .track-time .date { margin-bottom: 2px; }
+  .track-time .hour { color: var(--text-muted); opacity: 0.6; }
+
+  .track-info { overflow: hidden; }
+
+  .track-name {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+
+  .track-artist {
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .track-album {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    font-style: italic;
+  }
+
+  .track-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .track-duration {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 100px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  .badge-skip { background: rgba(244,165,35,0.12); color: #f4a523; }
+  .badge-complete { background: rgba(29,185,84,0.1); color: var(--green); }
+  .badge-offline { background: rgba(124,92,191,0.12); color: #9b79e0; }
+  .badge-shuffle { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+
+  /* Expanded detail */
+  .track-detail {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid rgba(29,185,84,0.2);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 14px 16px 16px;
+    margin-bottom: 2px;
+  }
+
+  .track-detail.open { display: block; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .detail-item { }
+
+  .detail-key {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .detail-val {
+    font-size: 12px;
+    color: var(--text);
+    word-break: break-all;
+  }
+
+  .detail-val a {
+    color: var(--green);
+    text-decoration: none;
+  }
+
+  .detail-val a:hover { text-decoration: underline; }
+
+  /* Progress bar */
+  .play-progress {
+    height: 3px;
+    background: var(--surface3);
+    border-radius: 100px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .play-progress-inner {
+    height: 100%;
+    background: var(--green);
+    border-radius: 100px;
+    transition: width 0.4s ease;
+  }
+
+  /* ─── TOP ARTISTS / TRACKS SECTION ─── */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .insight-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  .insight-card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .insight-card h3 span {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .rank-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rank-item:last-child { border-bottom: none; }
+
+  .rank-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 18px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .rank-bar-wrap { flex: 1; min-width: 0; }
+
+  .rank-name {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+
+  .rank-bar {
+    height: 3px;
+    background: var(--surface3);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .rank-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), #2ecc71);
+    border-radius: 100px;
+  }
+
+  .rank-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* Platform donut placeholder */
+  .platform-stats { }
+
+  /* ─── LOAD MORE ─── */
+  .load-more-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-dim);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .load-more-btn:hover {
+    background: var(--surface2);
+    color: var(--text);
+    border-color: var(--green);
+  }
+
+  /* ─── EMPTY / LOADING ─── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 100px; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .month-group { animation: fadeUp 0.3s ease both; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    header { padding: 24px; }
+    .app-layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .main-content { padding: 20px; }
+    .insights-grid { grid-template-columns: 1fr; }
+    .upload-box { padding: 40px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-area">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="color:#000">
+        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <h1>Listening History</h1>
+      <p>Spotify · Timeline Archive</p>
+    </div>
+  </div>
+  <div class="header-stats" id="header-stats" style="display:none">
+    <div class="stat-pill">
+      <span class="val" id="stat-tracks">—</span>
+      <span class="lbl">Reproduções</span>
+    </div>
+    <div class="stat-pill">
+      <span class="val" id="stat-artists">—</span>
+      <span class="lbl">Artistas</span>
+    </div>
+    <div class="stat-pill">
+      <span class="val" id="stat-hours">—</span>
+      <span class="lbl">Horas ouvidas</span>
+    </div>
+    <div class="stat-pill">
+      <span class="val" id="stat-years">—</span>
+      <span class="lbl">Anos</span>
+    </div>
+  </div>
+</header>
+
+<!-- UPLOAD SCREEN -->
+<div id="upload-screen">
+  <div class="upload-box" id="drop-zone">
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <h2>Carregue seu histórico</h2>
+    <p>Arraste os arquivos JSON exportados pelo Spotify<br>ou clique para selecionar. Você pode carregar<br><span>vários arquivos de uma vez</span>.</p>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Selecionar arquivos JSON
+    </button>
+    <input type="file" id="file-input" accept=".json" multiple>
+  </div>
+
+  <div class="format-hint">
+    <strong>Formato esperado:</strong> Arquivos JSON do pacote de dados do Spotify<br>
+    (ex: StreamingHistory_music_0.json, Streaming_History_Audio_2023.json, etc.)
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Filtrar por ano</div>
+        <button class="year-btn active" data-year="all" onclick="filterYear('all', this)">
+          Todos os anos <span class="count" id="count-all">—</span>
+        </button>
+        <div id="year-buttons"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Buscar</div>
+        <input class="filter-input" type="text" id="search-input" placeholder="Música, artista, álbum…" oninput="applyFilters()">
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Ordenar</div>
+        <select class="sort-select" id="sort-select" onchange="applyFilters()">
+          <option value="date-desc">Data ↓ (mais recente)</option>
+          <option value="date-asc">Data ↑ (mais antigo)</option>
+          <option value="duration-desc">Duração ↓</option>
+          <option value="artist-asc">Artista A→Z</option>
+        </select>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Mostrar apenas</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;padding:6px 4px">
+          <input type="checkbox" id="filter-skip" onchange="applyFilters()" style="accent-color:var(--green)">
+          Puladas
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;padding:6px 4px">
+          <input type="checkbox" id="filter-offline" onchange="applyFilters()" style="accent-color:var(--green)">
+          Offline
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;padding:6px 4px">
+          <input type="checkbox" id="filter-shuffle" onchange="applyFilters()" style="accent-color:var(--green)">
+          Shuffle ativo
+        </label>
+      </div>
+
+      <div class="sidebar-section">
+        <button class="load-more-btn" onclick="addMoreFiles()" style="margin-top:0">+ Adicionar mais arquivos</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <!-- Year overview chart -->
+      <div class="year-overview" id="year-chart">
+        <span class="year-overview-label">Reproduções por ano</span>
+      </div>
+
+      <!-- Insights -->
+      <div class="insights-grid" id="insights-grid"></div>
+
+      <!-- Timeline -->
+      <div class="timeline-header">
+        <div class="timeline-title" id="timeline-title">Timeline</div>
+        <div class="timeline-count" id="timeline-count"></div>
+      </div>
+
+      <div id="timeline-content"></div>
+
+      <button class="load-more-btn" id="load-more-btn" style="display:none" onclick="loadMoreTracks()">
+        Carregar mais reproduções
+      </button>
+    </main>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  DATA STORE
+// ══════════════════════════════════════════
+let allTracks = [];
+let filteredTracks = [];
+let displayedCount = 0;
+const PAGE_SIZE = 200;
+let activeYear = 'all';
+let expandedCard = null;
+
+// ══════════════════════════════════════════
+//  FILE LOADING
+// ══════════════════════════════════════════
+function setupDropZone() {
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    loadFiles(Array.from(e.dataTransfer.files));
+  });
+
+  document.getElementById('file-input').addEventListener('change', e => {
+    loadFiles(Array.from(e.target.files));
+  });
+}
+
+function addMoreFiles() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json';
+  inp.multiple = true;
+  inp.onchange = e => loadFiles(Array.from(e.target.files));
+  inp.click();
+}
+
+async function loadFiles(files) {
+  const jsonFiles = files.filter(f => f.name.endsWith('.json'));
+  if (!jsonFiles.length) return alert('Nenhum arquivo JSON encontrado.');
+
+  const newTracks = [];
+  for (const file of jsonFiles) {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (Array.isArray(data)) newTracks.push(...data);
+    } catch(e) {
+      console.warn('Erro ao ler', file.name, e);
+    }
+  }
+
+  // Filter: only music tracks (not episodes/audiobooks)
+  const music = newTracks.filter(t => t.master_metadata_track_name);
+
+  // De-dupe by ts + track uri
+  const existing = new Set(allTracks.map(t => t.ts + (t.spotify_track_uri || '')));
+  const fresh = music.filter(t => !existing.has(t.ts + (t.spotify_track_uri || '')));
+  allTracks.push(...fresh);
+
+  // Sort by date desc
+  allTracks.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+  if (allTracks.length === 0) return alert('Nenhuma faixa de música encontrada nos arquivos.');
+
+  showApp();
+}
+
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+function showApp() {
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('header-stats').style.display = 'flex';
+  updateStats();
+  buildYearButtons();
+  buildYearChart();
+  buildInsights();
+  applyFilters();
+}
+
+function updateStats() {
+  const artists = new Set(allTracks.map(t => t.master_metadata_album_artist_name).filter(Boolean));
+  const years = new Set(allTracks.map(t => new Date(t.ts).getFullYear()));
+  const ms = allTracks.reduce((s, t) => s + (t.ms_played || 0), 0);
+  const hours = Math.round(ms / 3600000);
+
+  document.getElementById('stat-tracks').textContent = allTracks.length.toLocaleString('pt-BR');
+  document.getElementById('stat-artists').textContent = artists.size.toLocaleString('pt-BR');
+  document.getElementById('stat-hours').textContent = hours.toLocaleString('pt-BR') + 'h';
+  document.getElementById('stat-years').textContent = years.size;
+  document.getElementById('count-all').textContent = allTracks.length.toLocaleString('pt-BR');
+}
+
+function buildYearButtons() {
+  const years = [...new Set(allTracks.map(t => new Date(t.ts).getFullYear()))].sort((a, b) => b - a);
+  const container = document.getElementById('year-buttons');
+  container.innerHTML = '';
+  years.forEach(yr => {
+    const cnt = allTracks.filter(t => new Date(t.ts).getFullYear() === yr).length;
+    const btn = document.createElement('button');
+    btn.className = 'year-btn';
+    btn.dataset.year = yr;
+    btn.innerHTML = `${yr} <span class="count">${cnt.toLocaleString('pt-BR')}</span>`;
+    btn.onclick = () => filterYear(yr, btn);
+    container.appendChild(btn);
+  });
+}
+
+function buildYearChart() {
+  const years = [...new Set(allTracks.map(t => new Date(t.ts).getFullYear()))].sort((a, b) => a - b);
+  const counts = {};
+  allTracks.forEach(t => { const y = new Date(t.ts).getFullYear(); counts[y] = (counts[y] || 0) + 1; });
+  const max = Math.max(...Object.values(counts));
+
+  const container = document.getElementById('year-chart');
+  container.innerHTML = '<span class="year-overview-label">Reproduções por ano</span>';
+
+  years.forEach(yr => {
+    const pct = (counts[yr] / max) * 56; // 56px max bar height
+    const wrap = document.createElement('div');
+    wrap.className = 'mini-bar-wrap';
+    wrap.dataset.year = yr;
+    wrap.innerHTML = `
+      <div class="mini-bar" style="height:${Math.max(pct,2)}px"></div>
+      <div class="mini-bar-lbl">${yr}</div>
+    `;
+    wrap.onclick = () => filterYear(yr, document.querySelector(`.year-btn[data-year="${yr}"]`));
+    container.appendChild(wrap);
+  });
+}
+
+function buildInsights() {
+  const tracks = activeYear === 'all' ? allTracks : allTracks.filter(t => new Date(t.ts).getFullYear() == activeYear);
+
+  // Top artists
+  const artistCount = {};
+  tracks.forEach(t => {
+    const a = t.master_metadata_album_artist_name;
+    if (a) artistCount[a] = (artistCount[a] || 0) + 1;
+  });
+  const topArtists = Object.entries(artistCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  // Top tracks
+  const trackCount = {};
+  tracks.forEach(t => {
+    const key = t.master_metadata_track_name + '||' + t.master_metadata_album_artist_name;
+    trackCount[key] = (trackCount[key] || 0) + 1;
+  });
+  const topTracks = Object.entries(trackCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  const maxA = topArtists[0]?.[1] || 1;
+  const maxT = topTracks[0]?.[1] || 1;
+
+  const grid = document.getElementById('insights-grid');
+  grid.innerHTML = `
+    <div class="insight-card">
+      <h3><span></span> Top Artistas</h3>
+      ${topArtists.map(([name, cnt], i) => `
+        <div class="rank-item">
+          <div class="rank-num">${i+1}</div>
+          <div class="rank-bar-wrap">
+            <div class="rank-name">${esc(name)}</div>
+            <div class="rank-bar"><div class="rank-bar-fill" style="width:${(cnt/maxA)*100}%"></div></div>
+          </div>
+          <div class="rank-count">${cnt.toLocaleString('pt-BR')}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="insight-card">
+      <h3><span></span> Top Músicas</h3>
+      ${topTracks.map(([key, cnt], i) => {
+        const [name, artist] = key.split('||');
+        return `
+          <div class="rank-item">
+            <div class="rank-num">${i+1}</div>
+            <div class="rank-bar-wrap">
+              <div class="rank-name">${esc(name)} <span style="color:var(--text-muted);font-size:10px">— ${esc(artist||'')}</span></div>
+              <div class="rank-bar"><div class="rank-bar-fill" style="width:${(cnt/maxT)*100}%"></div></div>
+            </div>
+            <div class="rank-count">${cnt.toLocaleString('pt-BR')}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════
+//  FILTER & SORT
+// ══════════════════════════════════════════
+function filterYear(year, btn) {
+  activeYear = year;
+  document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.mini-bar-wrap').forEach(w => {
+    w.classList.toggle('active', w.dataset.year == year);
+  });
+  buildInsights();
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  const sort = document.getElementById('sort-select').value;
+  const skipOnly = document.getElementById('filter-skip').checked;
+  const offlineOnly = document.getElementById('filter-offline').checked;
+  const shuffleOnly = document.getElementById('filter-shuffle').checked;
+
+  let tracks = allTracks.slice();
+
+  if (activeYear !== 'all') {
+    tracks = tracks.filter(t => new Date(t.ts).getFullYear() == activeYear);
+  }
+
+  if (q) {
+    tracks = tracks.filter(t =>
+      (t.master_metadata_track_name || '').toLowerCase().includes(q) ||
+      (t.master_metadata_album_artist_name || '').toLowerCase().includes(q) ||
+      (t.master_metadata_album_album_name || '').toLowerCase().includes(q)
+    );
+  }
+
+  if (skipOnly) tracks = tracks.filter(t => t.skipped);
+  if (offlineOnly) tracks = tracks.filter(t => t.offline);
+  if (shuffleOnly) tracks = tracks.filter(t => t.shuffle);
+
+  if (sort === 'date-asc') tracks.sort((a, b) => new Date(a.ts) - new Date(b.ts));
+  else if (sort === 'date-desc') tracks.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  else if (sort === 'duration-desc') tracks.sort((a, b) => (b.ms_played || 0) - (a.ms_played || 0));
+  else if (sort === 'artist-asc') tracks.sort((a, b) => (a.master_metadata_album_artist_name || '').localeCompare(b.master_metadata_album_artist_name || ''));
+
+  filteredTracks = tracks;
+  displayedCount = 0;
+  renderTimeline(true);
+}
+
+// ══════════════════════════════════════════
+//  TIMELINE RENDER
+// ══════════════════════════════════════════
+function renderTimeline(reset = false) {
+  const container = document.getElementById('timeline-content');
+  if (reset) container.innerHTML = '';
+
+  const label = activeYear === 'all' ? 'Todos os anos' : activeYear;
+  document.getElementById('timeline-title').textContent = label;
+  document.getElementById('timeline-count').textContent =
+    filteredTracks.length.toLocaleString('pt-BR') + ' reproduções';
+
+  const slice = filteredTracks.slice(displayedCount, displayedCount + PAGE_SIZE);
+  displayedCount += slice.length;
+
+  // Group by month
+  const groups = {};
+  slice.forEach(t => {
+    const d = new Date(t.ts);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  });
+
+  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  Object.entries(groups).forEach(([key, tracks]) => {
+    const [yr, mo] = key.split('-');
+    const monthName = monthNames[parseInt(mo)-1];
+
+    // Check if month already exists
+    let monthEl = container.querySelector(`[data-month="${key}"]`);
+    if (!monthEl) {
+      monthEl = document.createElement('div');
+      monthEl.className = 'month-group';
+      monthEl.dataset.month = key;
+      monthEl.innerHTML = `
+        <div class="month-header">
+          <div class="month-tag">${monthName} ${yr}</div>
+          <div class="month-plays">${tracks.length} plays</div>
+        </div>
+        <div class="track-list"></div>
+      `;
+      container.appendChild(monthEl);
+    }
+
+    const list = monthEl.querySelector('.track-list');
+    tracks.forEach(t => {
+      list.appendChild(buildTrackCard(t));
+    });
+  });
+
+  const loadBtn = document.getElementById('load-more-btn');
+  loadBtn.style.display = displayedCount < filteredTracks.length ? 'block' : 'none';
+
+  if (filteredTracks.length === 0) {
+    container.innerHTML = '<div class="empty-state">Nenhuma reprodução encontrada para esse filtro.</div>';
+  }
+}
+
+function loadMoreTracks() {
+  renderTimeline(false);
+}
+
+function buildTrackCard(t) {
+  const wrapper = document.createElement('div');
+
+  const d = new Date(t.ts);
+  const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const duration = t.ms_played ? formatDuration(t.ms_played) : '—';
+
+  const badges = [];
+  if (t.skipped) badges.push(`<span class="badge badge-skip">↷ Pulada</span>`);
+  else badges.push(`<span class="badge badge-complete">✓ Completa</span>`);
+  if (t.offline) badges.push(`<span class="badge badge-offline">⬇ Offline</span>`);
+  if (t.shuffle) badges.push(`<span class="badge badge-shuffle">⇄ Shuffle</span>`);
+
+  const trackName = esc(t.master_metadata_track_name || 'Unknown');
+  const artist = esc(t.master_metadata_album_artist_name || '');
+  const album = esc(t.master_metadata_album_album_name || '');
+
+  const trackId = t.spotify_track_uri ? t.spotify_track_uri.replace('spotify:track:', '') : null;
+  const spotifyLink = trackId ? `https://open.spotify.com/track/${trackId}` : null;
+
+  const card = document.createElement('div');
+  card.className = 'track-card';
+  card.innerHTML = `
+    <div class="track-time">
+      <div class="date">${dateStr}</div>
+      <div class="hour">${timeStr}</div>
+    </div>
+    <div class="track-info">
+      <div class="track-name">${trackName}</div>
+      <div class="track-artist">${artist}</div>
+      <div class="track-album">${album}</div>
+    </div>
+    <div class="track-meta">
+      <div class="track-duration">${duration}</div>
+      ${badges.join('')}
+    </div>
+  `;
+
+  // Detail panel
+  const detail = document.createElement('div');
+  detail.className = 'track-detail';
+
+  const pct = t.ms_played && t.reason_end === 'endplay' ? 100 :
+              t.ms_played ? Math.min(Math.round((t.ms_played / 240000) * 100), 100) : 0;
+
+  detail.innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="detail-key">Plataforma</div>
+        <div class="detail-val">${esc(t.platform || '—')}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">País</div>
+        <div class="detail-val">${esc(t.conn_country || '—')}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">Motivo início</div>
+        <div class="detail-val">${esc(t.reason_start || '—')}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">Motivo fim</div>
+        <div class="detail-val">${esc(t.reason_end || '—')}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">Timestamp</div>
+        <div class="detail-val" style="font-family:'DM Mono',monospace;font-size:11px">${t.ts}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-key">Modo incógnito</div>
+        <div class="detail-val">${t.incognito_mode ? 'Sim' : 'Não'}</div>
+      </div>
+      ${spotifyLink ? `
+      <div class="detail-item">
+        <div class="detail-key">Abrir no Spotify</div>
+        <div class="detail-val"><a href="${spotifyLink}" target="_blank">↗ Ouvir agora</a></div>
+      </div>` : ''}
+    </div>
+    <div class="play-progress" title="Porcentagem estimada ouvida">
+      <div class="play-progress-inner" style="width:${pct}%"></div>
+    </div>
+  `;
+
+  card.addEventListener('click', () => {
+    const isOpen = detail.classList.contains('open');
+    if (expandedCard && expandedCard !== detail) {
+      expandedCard.classList.remove('open');
+      expandedCard.previousElementSibling?.classList.remove('expanded');
+    }
+    if (isOpen) {
+      detail.classList.remove('open');
+      card.classList.remove('expanded');
+      expandedCard = null;
+    } else {
+      detail.classList.add('open');
+      card.classList.add('expanded');
+      expandedCard = detail;
+    }
+  });
+
+  wrapper.appendChild(card);
+  wrapper.appendChild(detail);
+  return wrapper;
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+function formatDuration(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  if (m === 0) return `${sec}s`;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+setupDropZone();
+</script>
+</body>
+</html>
