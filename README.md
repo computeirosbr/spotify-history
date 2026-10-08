@@ -17,9 +17,6 @@ Visualizador de histórico do Spotify em formato de timeline. Carregue os arquiv
 - Detalhes de cada faixa: plataforma, país, motivo de início e fim, timestamp, modo incógnito e link para abrir no Spotify
 - Remoção automática de duplicados (por `ts` + URI da faixa)
 
-## Privacidade
-
-Tudo roda **100% no navegador**. Os arquivos JSON são lidos localmente com a File API e **nunca são enviados a nenhum servidor**. Não há backend, cookies nem rastreamento. Os únicos recursos externos são as fontes do Google Fonts.
 
 ## Como obter seus dados
 
@@ -34,8 +31,6 @@ Tudo roda **100% no navegador**. Os arquivos JSON são lidos localmente com a Fi
 
 Abra a página, arraste os arquivos `.json` para a área de upload e navegue pela timeline.
 
-Para rodar localmente, basta abrir o `index.html` no navegador. Não há build nem dependências.
-
 ## Estrutura
 
 | Arquivo | Descrição |
@@ -43,16 +38,8 @@ Para rodar localmente, basta abrir o `index.html` no navegador. Não há build n
 | `index.html` | Aplicação completa (HTML, CSS e JavaScript) |
 | `robots.txt` | Regras para indexação |
 | `sitemap.xml` | Sitemap para buscadores |
-| `CNAME` | Domínio customizado do GitHub Pages |
 
-## Hospedagem (GitHub Pages)
 
-1. Publique os arquivos na raiz do repositório, com o arquivo principal como `index.html`.
-2. Crie um arquivo `CNAME` com `timeline.computeiros.com`.
-3. No DNS, crie um registro `CNAME` de `timeline` para `SEU-USUARIO.github.io`.
-4. Em *Settings → Pages*, selecione a branch e ative **Enforce HTTPS**.
-
-> ⚠️ **Não envie ao repositório os JSONs do seu histórico.** Eles contêm dados pessoais.
 
 ## Tecnologias
 
